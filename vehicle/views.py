@@ -1,9 +1,10 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework import viewsets, generics
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 
 from vehicle.models import Car, Moto, Milage
+from vehicle.permissions import IsOwnerOrStaff
 from vehicle.serializers import CarSerializer, MotoSerializer, MilageSerializer, MotoMilageSerializer, \
     MotoCreateSerializer
 
@@ -18,13 +19,14 @@ class CarViewSet(viewsets.ModelViewSet):
     #     super()
 
 
-
-
 class MotoCreateAPIView(generics.CreateAPIView):
     serializer_class = MotoCreateSerializer
     # serializer_class = MotoSerializer
-
-
+    permission_classes = [IsAuthenticated]
+    def perform_create(self, seralizer):
+        new_moto = seralizer.save()
+        new_moto.owner = self.request.user
+        new_moto.save()
 
 class MotoListAPIView(generics.ListAPIView):
     serializer_class = MotoSerializer
@@ -39,12 +41,16 @@ class MotoRetrieveAPIView(generics.RetrieveAPIView):
 class MotoUpdateAPIView(generics.UpdateAPIView):
     serializer_class = MotoSerializer
     queryset = Moto.objects.all()
+    permission_classes = [IsOwnerOrStaff]
+
 
 class MotoDestroyAPIView(generics.DestroyAPIView):
     queryset = Moto.objects.all()
 
+
 class MilageCreateAPIView(generics.CreateAPIView):
     serializer_class = MilageSerializer
+
 
 class MilageListAPIView(generics.ListAPIView):
     serializer_class = MilageSerializer
@@ -52,6 +58,7 @@ class MilageListAPIView(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ('car', 'moto')
     ordering_fields = ('year',)
+
 
 class MotoMilageListAPIView(generics.ListAPIView):
     serializer_class = MotoMilageSerializer
